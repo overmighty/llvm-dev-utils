@@ -1,0 +1,92 @@
+#!/usr/bin/python
+# Example usage:
+#   cd llvm-project
+#   /path/to/llvm-libc-add-math-function '' 'TYPE' 'fromfp' '(TYPE x, int rnd, unsigned int width)'
+#   /path/to/llvm-libc-add-math-function 'f' 'TYPE' 'fromfp' '(TYPE x, int rnd, unsigned int width)'
+import sys
+
+HEADER_TEMPLATE = """//===-- Implementation header for {0}--*- C++ -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LLVM_LIBC_SRC_MATH_{1}_H
+#define LLVM_LIBC_SRC_MATH_{1}_H
+
+namespace LIBC_NAMESPACE {{
+
+{2} {3}{4};
+
+}} // namespace LIBC_NAMESPACE
+
+#endif // LLVM_LIBC_SRC_MATH_{1}_H
+"""
+
+IMPL_TEMPLATE = """//===-- Implementation of {0}--===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#include "src/math/{1}.h"
+#include "src/__support/common.h"
+
+namespace LIBC_NAMESPACE {{
+
+LLVM_LIBC_FUNCTION({2}, {1}, {3}) {{
+}}
+
+}} // namespace LIBC_NAMESPACE
+"""
+
+
+def get_type_from_suffix(suffix):
+    match suffix:
+        case "":
+            return "double"
+        case "f":
+            return "float"
+        case "l":
+            return "long double"
+        case "f128":
+            return "float128"
+
+    raise ValueError("Invalid suffix")
+
+
+if __name__ == "__main__":
+    generic_type_suffix = sys.argv[1]
+    generic_type = get_type_from_suffix(generic_type_suffix)
+
+    return_type = sys.argv[2].replace("TYPE", generic_type)
+    name_prefix = sys.argv[3]
+    args = sys.argv[4].replace("TYPE", generic_type)
+
+    name = name_prefix + generic_type_suffix
+    uppercase_name = name.upper()
+
+    with open(f"libc/src/math/{name}.h", "w") as header:
+        header.write(
+            HEADER_TEMPLATE.format(
+                f"{name} " + ("-" * (29 - len(f"{name} "))),
+                uppercase_name,
+                return_type,
+                name,
+                args,
+            )
+        )
+
+    with open(f"libc/src/math/generic/{name}.cpp", "w") as impl:
+        impl.write(
+            IMPL_TEMPLATE.format(
+                f"{name} function " + ("-" * (47 - len(f"{name} function "))),
+                name,
+                return_type,
+                args,
+            )
+        )
