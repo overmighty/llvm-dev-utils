@@ -53,6 +53,8 @@ def get_type_from_suffix(suffix):
             return "float"
         case "l":
             return "long double"
+        case "f16":
+            return "float16"
         case "f128":
             return "float128"
 
