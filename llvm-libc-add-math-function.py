@@ -4,6 +4,7 @@
 #   ./path/to/llvm-libc-add-math-function.py '' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
 #   ./path/to/llvm-libc-add-math-function.py 'f16' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
 import sys
+import subprocess
 
 MAX_FILE_TITLE_LEN = 66
 
@@ -145,4 +146,13 @@ if __name__ == "__main__":
                 fn_return_type=fn_return_type,
                 fn_identifier=fn_identifier,
             )
+        )
+
+    if generic_type == "float16":
+        subprocess.run(
+            r"sed -i 's/^\(| "
+            + fn_identifier_prefix
+            + r" \+\(| \(|check|\|N\/A\)\? \+\)\{3\}| \) \{7\}/\1|check|/' libc/docs/math/index.rst && git diff libc/docs/math/index.rst",
+            shell=True,
+            check=True,
         )
