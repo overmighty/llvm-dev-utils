@@ -1,47 +1,55 @@
 #!/usr/bin/python
 # Example usage:
-#   cd llvm-project
-#   /path/to/llvm-libc-add-math-function '' 'TYPE' 'fromfp' '(TYPE x, int rnd, unsigned int width)'
-#   /path/to/llvm-libc-add-math-function 'f' 'TYPE' 'fromfp' '(TYPE x, int rnd, unsigned int width)'
+#   cd path/to/llvm-project
+#   ./path/to/llvm-libc-add-math-function.py '' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
+#   ./path/to/llvm-libc-add-math-function.py 'f16' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
 import sys
 
-HEADER_TEMPLATE = """//===-- Implementation header for {0}--*- C++ -*-===//
+MAX_FILE_TITLE_LEN = 66
+
+EMACS_CXX_MODE = "-*- C++ -*-"
+
+FILE_HEADER_TEMPLATE = """//===-- {file_title}===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
+"""
 
-#ifndef LLVM_LIBC_SRC_MATH_{1}_H
-#define LLVM_LIBC_SRC_MATH_{1}_H
-
+HEADER_TEMPLATE = """{file_header}
+#ifndef LLVM_LIBC_SRC_MATH_{fn_identifier_uppercase}_H
+#define LLVM_LIBC_SRC_MATH_{fn_identifier_uppercase}_H
+{includes}
 namespace LIBC_NAMESPACE {{
 
-{2} {3}{4};
+{fn_return_type} {fn_identifier}({fn_param_list});
 
 }} // namespace LIBC_NAMESPACE
 
-#endif // LLVM_LIBC_SRC_MATH_{1}_H
+#endif // LLVM_LIBC_SRC_MATH_{fn_identifier_uppercase}_H
 """
 
-IMPL_TEMPLATE = """//===-- Implementation of {0}--===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-
-#include "src/math/{1}.h"
+IMPL_TEMPLATE = """{file_header}
+#include "src/math/{fn_identifier}.h"
 #include "src/__support/common.h"
 
 namespace LIBC_NAMESPACE {{
 
-LLVM_LIBC_FUNCTION({2}, {1}, {3}) {{
+LLVM_LIBC_FUNCTION({fn_return_type}, {fn_identifier}, ({fn_param_list})) {{
+  // TODO: Implement function.
 }}
 
 }} // namespace LIBC_NAMESPACE
+"""
+
+TEST_TEMPLATE = """{file_header}
+#include "{test_class}.h"
+
+#include "src/math/{fn_identifier}.h"
+
+{test_macro}({fn_return_type}, LIBC_NAMESPACE::{fn_identifier})
 """
 
 
@@ -57,38 +65,84 @@ def get_type_from_suffix(suffix):
             return "float16"
         case "f128":
             return "float128"
+        case _:
+            raise ValueError("Unknown suffix")
 
-    raise ValueError("Invalid suffix")
+
+def get_file_title(base_title, emacs_mode=""):
+    dashes = "-" * (MAX_FILE_TITLE_LEN - len(base_title) - len(emacs_mode))
+    return f"{base_title} {dashes}{emacs_mode}"
+
+
+def get_include_for_type(type_identifier):
+    match type_identifier:
+        case "float16" | "float128":
+            return '#include "src/__support/macros/properties/types.h"'
 
 
 if __name__ == "__main__":
-    generic_type_suffix = sys.argv[1]
+    (
+        _,
+        generic_type_suffix,
+        fn_return_type_tmpl,
+        fn_identifier_prefix,
+        fn_param_list_tmpl,
+        test_class,
+        test_macro,
+        *_,
+    ) = sys.argv
+
     generic_type = get_type_from_suffix(generic_type_suffix)
+    fn_return_type = fn_return_type_tmpl.replace("TYPE", generic_type)
+    fn_identifier = fn_identifier_prefix + generic_type_suffix
+    fn_identifier_uppercase = fn_identifier.upper()
+    fn_param_list = fn_param_list_tmpl.replace("TYPE", generic_type)
 
-    return_type = sys.argv[2].replace("TYPE", generic_type)
-    name_prefix = sys.argv[3]
-    args = sys.argv[4].replace("TYPE", generic_type)
+    with open(f"libc/src/math/{fn_identifier}.h", "w") as header:
+        header_title = get_file_title(
+            f"Implementation header for {fn_identifier}", EMACS_CXX_MODE
+        )
+        header_file_header = FILE_HEADER_TEMPLATE.format(file_title=header_title)
 
-    name = name_prefix + generic_type_suffix
-    uppercase_name = name.upper()
+        header_includes = ""
 
-    with open(f"libc/src/math/{name}.h", "w") as header:
+        if (generic_type_include := get_include_for_type(generic_type)) is not None:
+            header_includes = f"\n{generic_type_include}\n"
+
         header.write(
             HEADER_TEMPLATE.format(
-                f"{name} " + ("-" * (29 - len(f"{name} "))),
-                uppercase_name,
-                return_type,
-                name,
-                args,
+                file_header=header_file_header,
+                fn_identifier_uppercase=fn_identifier_uppercase,
+                includes=header_includes,
+                fn_return_type=fn_return_type,
+                fn_identifier=fn_identifier,
+                fn_param_list=fn_param_list,
             )
         )
 
-    with open(f"libc/src/math/generic/{name}.cpp", "w") as impl:
+    with open(f"libc/src/math/generic/{fn_identifier}.cpp", "w") as impl:
+        impl_title = get_file_title(f"Implementation of {fn_identifier} function")
+        impl_file_header = FILE_HEADER_TEMPLATE.format(file_title=impl_title)
+
         impl.write(
             IMPL_TEMPLATE.format(
-                f"{name} function " + ("-" * (47 - len(f"{name} function "))),
-                name,
-                return_type,
-                args,
+                file_header=impl_file_header,
+                fn_return_type=fn_return_type,
+                fn_identifier=fn_identifier,
+                fn_param_list=fn_param_list,
+            )
+        )
+
+    with open(f"libc/test/src/math/smoke/{fn_identifier}_test.cpp", "w") as test:
+        test_title = get_file_title(f"Unittests for {fn_identifier}")
+        test_file_header = FILE_HEADER_TEMPLATE.format(file_title=test_title)
+
+        test.write(
+            TEST_TEMPLATE.format(
+                file_header=test_file_header,
+                test_class=test_class,
+                test_macro=test_macro,
+                fn_return_type=fn_return_type,
+                fn_identifier=fn_identifier,
             )
         )
