@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # Example usage:
 #   cd path/to/llvm-project
-#   ./path/to/llvm-libc-add-math-function.py '' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
-#   ./path/to/llvm-libc-add-math-function.py 'f16' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
+#   ./path/to/llvm_libc_add_math_function.py '' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
+#   ./path/to/llvm_libc_add_math_function.py 'f16' 'TYPE' 'ceil' 'TYPE x' 'CeilTest' 'LIST_CEIL_TESTS'
 import sys
 import subprocess
 
