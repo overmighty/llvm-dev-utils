@@ -22,12 +22,14 @@ FILE_HEADER_TEMPLATE = """//===-- {file_title}===//
 HEADER_TEMPLATE = """{file_header}
 #ifndef LLVM_LIBC_SRC_MATH_{fn_identifier_uppercase}_H
 #define LLVM_LIBC_SRC_MATH_{fn_identifier_uppercase}_H
+
+#include "src/__support/macros/config.h"
 {includes}
-namespace LIBC_NAMESPACE {{
+namespace LIBC_NAMESPACE_DECL {{
 
 {fn_return_type} {fn_identifier}({fn_param_list});
 
-}} // namespace LIBC_NAMESPACE
+}} // namespace LIBC_NAMESPACE_DECL
 
 #endif // LLVM_LIBC_SRC_MATH_{fn_identifier_uppercase}_H
 """
@@ -35,14 +37,15 @@ namespace LIBC_NAMESPACE {{
 IMPL_TEMPLATE = """{file_header}
 #include "src/math/{fn_identifier}.h"
 #include "src/__support/common.h"
+#include "src/__support/macros/config.h"
 
-namespace LIBC_NAMESPACE {{
+namespace LIBC_NAMESPACE_DECL {{
 
 LLVM_LIBC_FUNCTION({fn_return_type}, {fn_identifier}, ({fn_param_list})) {{
   // TODO: Implement function.
 }}
 
-}} // namespace LIBC_NAMESPACE
+}} // namespace LIBC_NAMESPACE_DECL
 """
 
 TEST_TEMPLATE = """{file_header}
@@ -108,7 +111,7 @@ if __name__ == "__main__":
         header_includes = ""
 
         if (generic_type_include := get_include_for_type(generic_type)) is not None:
-            header_includes = f"\n{generic_type_include}\n"
+            header_includes = f"{generic_type_include}\n"
 
         header.write(
             HEADER_TEMPLATE.format(
