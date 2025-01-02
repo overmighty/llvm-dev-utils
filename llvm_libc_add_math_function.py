@@ -155,7 +155,7 @@ if __name__ == "__main__":
         subprocess.run(
             r"sed -i 's/^\(| "
             + fn_identifier_prefix
-            + r" \+\(| \(|check|\|N\/A\)\? \+\)\{3\}| \) \{7\}/\1|check|/' libc/docs/math/index.rst && git diff libc/docs/math/index.rst",
+            + r" \+\(| \(|check|\|N\/A\)\? \+\)\{3\}| \) \{7\}/\1|check|/' libc/docs/headers/math/index.rst && git diff libc/docs/headers/math/index.rst",
             shell=True,
             check=True,
         )
